@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -15,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PLUGIN = ROOT / "plugins" / "project-memory"
 SKILL = PLUGIN / "skills" / "project-memory"
 INITIALIZER = SKILL / "scripts" / "init_project_memory.py"
+PYTHON_ENV = {**os.environ, "PYTHONUTF8": "1"}
 
 
 class PackageTests(unittest.TestCase):
@@ -69,6 +71,7 @@ class PackageTests(unittest.TestCase):
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
+                env=PYTHON_ENV,
                 check=False,
             )
             self.assertEqual(initialized.returncode, 0, initialized.stdout + initialized.stderr)
@@ -78,6 +81,7 @@ class PackageTests(unittest.TestCase):
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
+                env=PYTHON_ENV,
                 check=False,
             )
             self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
@@ -94,6 +98,7 @@ class PackageTests(unittest.TestCase):
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
+                env=PYTHON_ENV,
                 check=False,
             )
             self.assertNotEqual(result.returncode, 0)
