@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+*.backup-*
+*.installing
+.DS_Store
+Thumbs.db
+dist/
+test-results/

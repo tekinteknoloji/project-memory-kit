@@ -1,0 +1,22 @@
+{
+  "name": "project-memory",
+  "version": "1.1.0",
+  "description": "Portable, token-efficient Markdown memory for ongoing projects.",
+  "author": {
+    "name": "Tekin Teknoloji"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Project Memory",
+    "shortDescription": "Portable and efficient project memory.",
+    "longDescription": "Creates and maintains self-contained Markdown project memory with selective loading, health checks, session receipts, and portability safeguards.",
+    "developerName": "Tekin Teknoloji",
+    "category": "Productivity",
+    "capabilities": ["Write"],
+    "defaultPrompt": [
+      "Use $project-memory to initialize memory for this project.",
+      "Use $project-memory to report the current project status.",
+      "Use $project-memory to close this work session safely."
+    ]
+  }
+}
