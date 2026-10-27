@@ -19,23 +19,30 @@ if (-not (Test-Path -LiteralPath (Join-Path $sourceSkill 'SKILL.md'))) {
 
 New-Item -ItemType Directory -Path $skillsRoot -Force | Out-Null
 
-if (Test-Path -LiteralPath $targetSkill) {
-    if (-not $Force) {
-        throw "Skill zaten kurulu: $targetSkill. Guncellemek icin -Force kullanin."
+if ((Test-Path -LiteralPath $targetSkill) -and -not $Force) {
+    throw "Skill zaten kurulu: $targetSkill. Guncellemek icin -Force kullanin."
+}
+$temporaryTarget = "$targetSkill.installing-$([guid]::NewGuid().ToString('N'))"
+$backup = $null
+try {
+    Copy-Item -LiteralPath $sourceSkill -Destination $temporaryTarget -Recurse
+    if (Test-Path -LiteralPath $targetSkill) {
+        $backup = "$targetSkill.backup-$(Get-Date -Format 'yyyyMMdd-HHmmss')-$([guid]::NewGuid().ToString('N'))"
+        Move-Item -LiteralPath $targetSkill -Destination $backup
+        Write-Host "Onceki skill yedeklendi: $backup"
     }
-    $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-    $backup = "$targetSkill.backup-$stamp"
-    Move-Item -LiteralPath $targetSkill -Destination $backup
-    Write-Host "Onceki skill yedeklendi: $backup"
+    Move-Item -LiteralPath $temporaryTarget -Destination $targetSkill
+} catch {
+    if ($backup -and -not (Test-Path -LiteralPath $targetSkill)) {
+        Move-Item -LiteralPath $backup -Destination $targetSkill
+    }
+    throw
+} finally {
+    if (Test-Path -LiteralPath $temporaryTarget) {
+        Remove-Item -LiteralPath $temporaryTarget -Recurse -Force
+    }
 }
 
-$temporaryTarget = "$targetSkill.installing"
-if (Test-Path -LiteralPath $temporaryTarget) {
-    Remove-Item -LiteralPath $temporaryTarget -Recurse -Force
-}
-
-Copy-Item -LiteralPath $sourceSkill -Destination $temporaryTarget -Recurse
-Move-Item -LiteralPath $temporaryTarget -Destination $targetSkill
 Write-Host "Project Memory kuruldu: $targetSkill"
 
 if ($InstallGlobalRules) {
@@ -43,7 +50,7 @@ if ($InstallGlobalRules) {
     $snippetPath = Join-Path $kitRoot 'global\AGENTS.snippet.md'
     $startMarker = '<!-- project-memory:start -->'
     $existing = if (Test-Path -LiteralPath $agentsPath) {
-        Get-Content -LiteralPath $agentsPath -Raw
+        [IO.File]::ReadAllText($agentsPath, [Text.Encoding]::UTF8)
     } else {
         ''
     }
@@ -54,9 +61,9 @@ if ($InstallGlobalRules) {
         New-Item -ItemType Directory -Path $codexRoot -Force | Out-Null
         if ($existing.Length -gt 0) {
             Copy-Item -LiteralPath $agentsPath -Destination "$agentsPath.backup-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
-            Add-Content -LiteralPath $agentsPath -Value "`r`n"
+            [IO.File]::AppendAllText($agentsPath, "`r`n", [Text.UTF8Encoding]::new($false))
         }
-        Add-Content -LiteralPath $agentsPath -Value (Get-Content -LiteralPath $snippetPath -Raw)
+        [IO.File]::AppendAllText($agentsPath, [IO.File]::ReadAllText($snippetPath, [Text.Encoding]::UTF8), [Text.UTF8Encoding]::new($false))
         Write-Host "Global otomatik baslatma kurallari eklendi: $agentsPath"
     }
 }

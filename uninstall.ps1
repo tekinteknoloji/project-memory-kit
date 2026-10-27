@@ -21,12 +21,12 @@ if (Test-Path -LiteralPath $targetSkill) {
 if ($RemoveGlobalRules) {
     $agentsPath = Join-Path $codexRoot 'AGENTS.md'
     if (Test-Path -LiteralPath $agentsPath) {
-        $content = Get-Content -LiteralPath $agentsPath -Raw
-        $pattern = '(?s)\r?\n?<!-- project-memory:start -->.*?<!-- project-memory:end -->\r?\n?'
-        $updated = [regex]::Replace($content, $pattern, "`r`n").TrimEnd() + "`r`n"
-        if ($updated -ne $content) {
+        $content = [IO.File]::ReadAllText($agentsPath, [Text.Encoding]::UTF8)
+        $pattern = '(?s)<!-- project-memory:start -->.*?<!-- project-memory:end -->'
+        $updated = [regex]::Replace($content, $pattern, '')
+        if ($updated -ne $content -and $PSCmdlet.ShouldProcess($agentsPath, 'Project Memory global kurallarini kaldir')) {
             Copy-Item -LiteralPath $agentsPath -Destination "$agentsPath.backup-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
-            Set-Content -LiteralPath $agentsPath -Value $updated -Encoding utf8
+            [IO.File]::WriteAllText($agentsPath, $updated, [Text.UTF8Encoding]::new($false))
             Write-Host "Global kurallar kaldirildi: $agentsPath"
         }
     }

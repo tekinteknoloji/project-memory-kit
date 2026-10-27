@@ -1,35 +1,47 @@
 #!/usr/bin/env python3
-"""Initialize portable project memory from bundled templates without overwriting files."""
-
+"""Initialize a new project without copying the source project's records."""
 from __future__ import annotations
-import argparse, shutil, sys
+import argparse
+import shutil
+import sys
 from datetime import datetime
 from pathlib import Path
 
-SOURCE = Path(__file__).resolve().parents[1] / "templates" / "project-memory"
-
+ROOT = Path(__file__).resolve().parents[1]
 
 def main() -> int:
-    parser = argparse.ArgumentParser(); parser.add_argument("target", type=Path); args = parser.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("target", type=Path)
+    args = parser.parse_args()
     target = args.target.resolve()
-    if not SOURCE.is_dir():
-        print(f"HATA: Şablon bulunamadı: {SOURCE}", file=sys.stderr); return 1
-    conflicts = [path.relative_to(SOURCE) for path in SOURCE.rglob("*") if path.is_file() and (target / path.relative_to(SOURCE)).exists()]
-    if conflicts:
-        print("HATA: Var olan dosyaların üzerine yazılmadı:", file=sys.stderr)
-        for conflict in conflicts: print(f"- {conflict}", file=sys.stderr)
+    # Embedded neutral assets are distributed beside this script.
+    source = ROOT / "tools" / "project_memory_template"
+    if not source.is_dir():
+        print("HATA: project_memory_template bulunamadı.", file=sys.stderr)
         return 1
-    target.mkdir(parents=True, exist_ok=True)
-    for source in SOURCE.rglob("*"):
-        destination = target / source.relative_to(SOURCE)
-        if source.is_dir(): destination.mkdir(parents=True, exist_ok=True)
-        else: destination.parent.mkdir(parents=True, exist_ok=True); shutil.copy2(source, destination)
-    replacements = {"{{TIMESTAMP}}": datetime.now().astimezone().isoformat(sep=" ", timespec="seconds"), "{{PROJECT_NAME}}": target.name}
-    for path in target.rglob("*.md"):
-        text = path.read_text(encoding="utf-8")
-        for old, new in replacements.items(): text = text.replace(old, new)
-        path.write_text(text, encoding="utf-8", newline="\n")
-    print(f"Proje hafızası oluşturuldu: {target}"); return 0
+    files = [p for p in source.rglob("*") if p.is_file()]
+    # Include the tools separately to avoid recursive template nesting.
+    sources = [(p, p.relative_to(source)) for p in files]
+    sources += [(ROOT / "tools" / name, Path("tools") / name)
+                for name in ("init_memory.py", "memory_check.py", "memory_close.py", "memory_backup.py")]
+    sources += [(p, Path("tools/project_memory_template") / p.relative_to(source)) for p in files]
+    if any((target / relative).exists() for _, relative in sources):
+        print("HATA: Var olan dosyaların üzerine yazılmadı.", file=sys.stderr)
+        return 1
+    replacements = {"{{TIMESTAMP}}": datetime.now().astimezone().isoformat(sep=" ", timespec="seconds"),
+                    "{{PROJECT_NAME}}": target.name, "{{GIT_STATUS}}": "KONTROL EDİLEMEDİ"}
+    for original, relative in sources:
+        destination = target / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if original.suffix == ".md" and not relative.is_relative_to("tools/project_memory_template"):
+            text = original.read_text(encoding="utf-8")
+            for old, new in replacements.items():
+                text = text.replace(old, new)
+            destination.write_text(text, encoding="utf-8", newline="\n")
+        else:
+            shutil.copy2(original, destination)
+    print(f"Proje hafızası oluşturuldu: {target}")
+    return 0
 
-
-if __name__ == "__main__": sys.exit(main())
+if __name__ == "__main__":
+    sys.exit(main())

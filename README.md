@@ -69,25 +69,32 @@ Kaldırma betiği yalnızca kurulu `project-memory` skill klasörünü ve işare
 Depo testlerinin tamamı:
 
 ```powershell
-python .\tests\test_package.py
+python -m unittest discover -s tests -p "test_*.py"
 .\tests\test_one_click.ps1
+.\tests\test_safety.ps1
 ```
 
 GitHub Actions, her push ve pull request için paket testlerini Windows ve Linux üzerinde; tek tık kurulum akışını Windows üzerinde çalıştırır.
 
 Skill başlangıç komutu:
 
-Skill sağlık kontrolü:
-
 ```powershell
-python .\plugins\project-memory\skills\project-memory\scripts\init_project_memory.py --help
+python .\plugins\project-memory\skills\project-memory\scripts\init_project_memory.py <yeni-proje-klasoru>
 ```
 
-Yeni projedeki hafıza kurulduktan sonra proje içindeki şu komut kullanılabilir:
+Hafıza kurulduktan sonra proje içindeki salt okunur sağlık kontrolü:
 
 ```powershell
 python .\tools\memory_check.py
 ```
+
+## Güvenlik ve veri koruma sınırları
+
+Başlatıcı yalnızca şablondan oluşturduğu Markdown dosyalarını işler; mevcut belgeleri değiştirmez. Projeye taşınan `tools/init_memory.py`, yanında dağıtılan tarafsız şablonu kullanır; kaynak projenin hafıza kayıtlarını yeni projeye aktarmaz.
+
+Oturum kapatma, yazmadan önce ve sonra sağlık kontrolü yapar; yakalanan yazma veya doğrulama hatalarında oturum ve durum dosyalarını geri yükler. Bu koruma elektrik kesintisine karşı çok dosyalı bir işlem garantisi değildir. Kilitler yalnızca yaşlarına bakılarak silinmez. Oturum geçmişi otomatik kısaltılmaz; arşivleme ayrı bakım işlemidir. `--changed` belirtilen dosyaların proje içinde ve okunabilir olduğunu doğrular; gerçek değişikliklerin bağımsız kanıtı değildir. `--no-durable-change` önceki kalıcı kayıt zamanını korur; kapanış makbuzu ve oturum satırı yine kaydedilir.
+
+Sağlık kontrolündeki gizli bilgi taraması sınırlı bir yardımcı kontroldür. Paylaşmadan önce dosyaları ayrıca gözden geçirin. Yerel Git bundle yalnızca Git geçmişini korur; harici yedek değildir. Güncelleme komutu internette sürüm aramaz, elinizdeki paketi kurar.
 
 ## Lisans
 
