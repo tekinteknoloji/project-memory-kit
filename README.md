@@ -54,7 +54,7 @@ Ardından yeni bir Codex görevi açın. Codex CLI sürümünüz plugin komutlar
 
 ## Başka yapay zekâlarda kullanım
 
-Skill zorunlu değildir. `plugins/project-memory/skills/project-memory/assets/project-memory/` şablonunu yeni proje klasörüne kopyalayın. Yapay zekâya önce kök `AGENTS.md`, sonra `memory/INDEX.md` ve `memory/CURRENT.md` dosyalarını okumasını söyleyin.
+Skill zorunlu değildir. Paketten `python plugins/project-memory/skills/project-memory/scripts/init_project_memory.py <yeni-proje>` komutunu çalıştırın. Oluşan projedeki `python tools/init_memory.py <başka-yeni-proje>` komutu, skill kurulmadan da yeni bir proje başlatır. Yapay zekâya önce kök `AGENTS.md`, sonra `memory/INDEX.md` ve `memory/CURRENT.md` dosyalarını okumasını söyleyin.
 
 ## Kaldırma
 

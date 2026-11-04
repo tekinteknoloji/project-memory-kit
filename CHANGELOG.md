@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+- Share one initializer across package and portable entry points, with full preflight and exclusive destination creation.
+- Generate portable neutral templates from one canonical source tree; retain multi-generation privacy and preservation checks.
+- Prune dependency/cache directories before traversal and cache text reads per audit; expose scan scope in JSON.
+- Extend advisory credential-assignment detection with placeholder filtering and value-free reports.
+- Require the shared initialization helper in the 21-file health check.
+
 - Fix closing a clean Git repository: date the recorded pre-close Git observation while reporting current Git state independently.
 - Preserve detection of real Git changes and unexpected post-write warnings; distinguish Git access failure from a missing repository.
 

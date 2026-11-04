@@ -20,7 +20,7 @@ def run(*args, cwd=None):
 class RegressionTests(unittest.TestCase):
     def test_neutral_templates_match_distributed_defaults(self):
         assets = SKILL/'assets/project-memory'
-        neutral = assets/'tools/project_memory_template'
+        neutral = self.project/'tools/project_memory_template'
         defaults = [assets/'AGENTS.md', assets/'README.md', assets/'.gitignore', *(assets/'memory').rglob('*.md')]
         for source in defaults:
             self.assertEqual(source.read_bytes(), (neutral/source.relative_to(assets)).read_bytes())
