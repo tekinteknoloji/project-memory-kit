@@ -90,9 +90,20 @@ python .\tools\memory_check.py
 
 ## Güvenlik ve veri koruma sınırları
 
+Kayıt ve kurtarma ayrıntıları: [Güvenli kayıt](plugins/project-memory/skills/project-memory/references/storage.md).
+
+Yarım kalmış bir kayıt tespit edilirse yeni kapanış engellenir. Önce salt okunur kontrol yapın; ardından açık kurtarma komutunu kullanın:
+
+```powershell
+python .\tools\memory_check.py
+python .\tools\memory_close.py --recover
+```
+
+Kurtarma dosya içeriklerini günlüğün hashleriyle karşılaştırır. Dış değişiklik, bozuk kopya veya doğrulanamayan kilit varsa üzerine yazmaz. Canlı süreç kilidi yaşına göre kaldırılmaz. İşlem günlüğünü veya kilidi gelişigüzel silmeyin.
+
 Başlatıcı yalnızca şablondan oluşturduğu Markdown dosyalarını işler; mevcut belgeleri değiştirmez. Projeye taşınan `tools/init_memory.py`, yanında dağıtılan tarafsız şablonu kullanır; kaynak projenin hafıza kayıtlarını yeni projeye aktarmaz.
 
-Oturum kapatma, yazmadan önce ve sonra sağlık kontrolü yapar; yakalanan yazma veya doğrulama hatalarında oturum ve durum dosyalarını geri yükler. Bu koruma elektrik kesintisine karşı çok dosyalı bir işlem garantisi değildir. Kilitler yalnızca yaşlarına bakılarak silinmez. Oturum geçmişi otomatik kısaltılmaz; arşivleme ayrı bakım işlemidir. `--changed` belirtilen dosyaların proje içinde ve okunabilir olduğunu doğrular; gerçek değişikliklerin bağımsız kanıtı değildir. `--no-durable-change` önceki kalıcı kayıt zamanını korur; kapanış makbuzu ve oturum satırı yine kaydedilir.
+Oturum kapatma, yazmadan önce ve sonra sağlık kontrolü yapar; yakalanan yazma veya doğrulama hatalarında oturum ve durum dosyalarını geri yükler. İşlem günlüğü kesilen süreçten sonra açık kurtarmayı destekler; elektrik kesintisine karşı çok dosyalı atomiklik garantisi verilmez. Kilitler yalnızca yaşlarına bakılarak silinmez. Oturum geçmişi otomatik kısaltılmaz; arşivleme ayrı bakım işlemidir. `--changed` belirtilen dosyaların proje içinde ve okunabilir olduğunu doğrular; gerçek değişikliklerin bağımsız kanıtı değildir. `--no-durable-change` önceki kalıcı kayıt zamanını korur; kapanış makbuzu ve oturum satırı yine kaydedilir.
 
 Sağlık kontrolündeki gizli bilgi taraması sınırlı bir yardımcı kontroldür. Paylaşmadan önce dosyaları ayrıca gözden geçirin. Yerel Git bundle yalnızca Git geçmişini korur; harici yedek değildir. Güncelleme komutu internette sürüm aramaz, elinizdeki paketi kurar.
 

@@ -2,3 +2,5 @@ __pycache__/
 *.py[cod]
 memory/.lock
 *.tmp
+memory/.transaction/
+memory/.recovery-lock

@@ -65,6 +65,10 @@ Use this order: newest explicit user instruction; verified project files and tes
 
 Do not silently overwrite conflicting history. Mark the old record invalid or superseded and link the replacement. Label unverified conclusions as `inference` or `unverified`.
 
+## Interrupted saves
+
+If the health check reports a pending transaction, stop new writes and read [storage recovery](references/storage.md). Use the explicit recovery command; never discard a lock or journal just because it is old. Conflicting external edits and corrupt snapshots require review, not forced rollback.
+
 ## Maintenance and portability
 
 For audits, compaction, migration, archive work, portability checks, or status-file recovery, read [references/protocol.md](references/protocol.md). Never invent decisions while summarizing. Preserve requirements, decision rationale, identifiers, unresolved risks, and useful links.

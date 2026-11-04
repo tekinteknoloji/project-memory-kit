@@ -23,7 +23,7 @@ def main() -> int:
     # Include the tools separately to avoid recursive template nesting.
     sources = [(p, p.relative_to(source)) for p in files]
     sources += [(ROOT / "tools" / name, Path("tools") / name)
-                for name in ("init_memory.py", "memory_check.py", "memory_close.py", "memory_backup.py")]
+                for name in ("init_memory.py", "memory_check.py", "memory_close.py", "memory_backup.py", "memory_storage.py")]
     sources += [(p, Path("tools/project_memory_template") / p.relative_to(source)) for p in files]
     if any((target / relative).exists() for _, relative in sources):
         print("HATA: Var olan dosyaların üzerine yazılmadı.", file=sys.stderr)

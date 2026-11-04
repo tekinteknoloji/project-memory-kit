@@ -21,7 +21,7 @@ REQUIRED_RELATIVE = (
     "memory/REQUIREMENTS.md", "memory/DECISIONS.md", "memory/ARCHITECTURE.md",
     "memory/CONVENTIONS.md", "memory/ISSUES.md", "memory/LEARNINGS.md",
     "memory/ARCHIVE/INDEX.md", "tools/memory_check.py", "tools/memory_close.py",
-    "tools/memory_backup.py", "tools/init_memory.py",
+    "tools/memory_backup.py", "tools/init_memory.py", "tools/memory_storage.py",
 )
 LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 ID_RE = re.compile(r"^##\s+((?:REQ|DEC|ISSUE|LRN)-\d+)\b", re.MULTILINE)
@@ -74,11 +74,28 @@ def git_state(root: Path) -> str:
     return "TEMİZ" if not result.stdout.strip() else "KAYDEDİLMEMİŞ DEĞİŞİKLİKLER VAR"
 
 
-def audit(root: Path) -> dict[str, object]:
+def audit(root: Path, transaction_id: str | None = None) -> dict[str, object]:
     root = root.resolve()
     memory = root / "memory"
     errors: list[str] = []
     warnings: list[str] = []
+
+    pending = memory / '.transaction'
+    if pending.exists() or pending.is_symlink():
+        try:
+            from memory_storage import linked
+            if linked(memory) or linked(pending) or linked(pending / 'manifest.json'):
+                raise ValueError('linked journal')
+            manifest = json.loads((pending / 'manifest.json').read_text(encoding='utf-8'))
+            if not isinstance(manifest, dict):
+                raise ValueError('invalid journal')
+            owned = transaction_id and manifest.get('id') == transaction_id and manifest.get('state') == 'prepared'
+            if not owned:
+                errors.append('Tamamlanmamış hafıza işlemi: önce memory_close.py --recover')
+        except (OSError, ValueError, TypeError):
+            errors.append('İşlem günlüğü doğrulanamadı; otomatik yazma engellenmeli')
+    elif transaction_id:
+        errors.append('Etkin işlem günlüğü bulunamadı')
 
     for relative in REQUIRED_RELATIVE:
         if not (root / relative).is_file():
@@ -178,8 +195,9 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument("--json", action="store_true", dest="as_json")
+    parser.add_argument("--transaction-id", help=argparse.SUPPRESS)
     args = parser.parse_args()
-    report = audit(args.root)
+    report = audit(args.root, args.transaction_id)
     if args.as_json:
         print(json.dumps(report, ensure_ascii=False, indent=2))
     else:

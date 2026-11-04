@@ -85,7 +85,7 @@ class PackageTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
-            self.assertIn("19/19", checked.stdout)
+            self.assertIn("20/20", checked.stdout)
 
     def test_initializer_refuses_to_overwrite(self) -> None:
         with tempfile.TemporaryDirectory(prefix="project-memory-conflict-") as directory:
