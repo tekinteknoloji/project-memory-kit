@@ -63,6 +63,12 @@ def main() -> int:
                 return 0
             original = store.snapshot(['memory/SESSIONS.md', 'memory/STATUS.md'])
             report = checker_report()
+            # Only this legacy warning is resolved by replacing the receipt with
+            # an explicitly dated snapshot. All other warnings must stay stable.
+            expected_warnings = [warning for warning in report.get('warnings', [])
+                                 if warning != report.get('git_receipt_warning')]
+            expected_result = 'UYARI' if expected_warnings else 'BAŞARILI'
+
             for relative in args.changed:
                 path = (ROOT / relative).resolve()
                 if not path.is_relative_to(ROOT.resolve()) or not path.is_file():
@@ -83,14 +89,17 @@ def main() -> int:
                 f'- Son kontrol: {timestamp}\n- Son kalıcı kayıt: {last_write}\n'
                 '- Dosya kaydı: DOĞRULANDI\n'
                 f'- Git durumu: {report["git_state"]}\n'
+                '- Git ölçüm anı: Kapanış öncesi\n'
+                f'- Git ölçüm zamanı: {report.get("git_observed_at", timestamp)}\n'
                 f'- Yerel yedekleme: {backup_state()}\n- Harici yedekleme: DOĞRULANMADI\n'
-                f'- Hafıza kontrolü: {report["result"]}\n'
+                f'- Hafıza kontrolü: {expected_result}\n'
                 f'- Son güncellenen dosyalar: {", ".join(changed)}\n'
                 f'- Son işlem: {args.summary}\n- Sonraki adım: {args.next_action}\n'
             )
             def validate():
                 final_report = checker_report(transaction_id=store.transaction_id)
-                if final_report['result'] != report['result']:
+                if (final_report['result'] != expected_result
+                        or sorted(final_report.get('warnings', [])) != sorted(expected_warnings)):
                     raise RuntimeError('Kayıt sonrası kontrol sonucu değişti; kayıt geri alınıyor')
             store.commit({'memory/SESSIONS.md': session_text.encode('utf-8'),
                           'memory/STATUS.md': status.encode('utf-8')}, original, validate)

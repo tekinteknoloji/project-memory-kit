@@ -4,6 +4,9 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+- Fix closing a clean Git repository: date the recorded pre-close Git observation while reporting current Git state independently.
+- Preserve detection of real Git changes and unexpected post-write warnings; distinguish Git access failure from a missing repository.
+
 - Add a shared journaled storage module with verified before/after snapshots.
 - Block new closes and health-check success while a transaction is pending.
 - Add explicit recovery for interrupted closes; preserve external changes and corrupt journals for review.

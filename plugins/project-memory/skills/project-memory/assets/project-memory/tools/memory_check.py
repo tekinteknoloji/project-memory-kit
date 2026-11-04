@@ -70,7 +70,7 @@ def git_state(root: Path) -> str:
     except (OSError, subprocess.SubprocessError):
         return "KONTROL EDİLEMEDİ"
     if result.returncode != 0:
-        return "GIT YOK"
+        return "GIT YOK" if "not a git repository" in (result.stderr or "").casefold() else "KONTROL EDİLEMEDİ"
     return "TEMİZ" if not result.stdout.strip() else "KAYDEDİLMEMİŞ DEĞİŞİKLİKLER VAR"
 
 
@@ -169,9 +169,23 @@ def audit(root: Path, transaction_id: str | None = None) -> dict[str, object]:
             errors.append(f"STATUS.md geçersiz zaman damgası: {field}")
 
     actual_git = git_state(root)
+    git_observed_at = datetime.now().astimezone().isoformat(sep=" ", timespec="seconds")
     claimed_git = status.get("Git durumu")
-    if claimed_git and claimed_git != actual_git:
-        warnings.append(f"STATUS.md Git durumu eski: kayıt={claimed_git}, gerçek={actual_git}")
+    git_scope = status.get("Git ölçüm anı")
+    historical_git = git_scope == "Kapanış öncesi"
+    git_receipt_warning = None
+    if historical_git:
+        try:
+            observed = datetime.fromisoformat(status.get("Git ölçüm zamanı", ""))
+            if observed.tzinfo is None or observed.astimezone(timezone.utc) > datetime.now(timezone.utc) + timedelta(minutes=5):
+                raise ValueError("invalid measurement time")
+        except ValueError:
+            errors.append("STATUS.md Git ölçüm zamanı geçersiz veya zaman dilimi eksik")
+    elif git_scope:
+        errors.append("STATUS.md Git ölçüm anı tanınmıyor")
+    elif claimed_git and claimed_git != actual_git:
+        git_receipt_warning = f"STATUS.md Git durumu eski: kayıt={claimed_git}, gerçek={actual_git}"
+        warnings.append(git_receipt_warning)
 
     issues_path, current_path = memory / "ISSUES.md", memory / "CURRENT.md"
     if issues_path.is_file() and current_path.is_file():
@@ -188,6 +202,8 @@ def audit(root: Path, transaction_id: str | None = None) -> dict[str, object]:
         "result": result, "errors": errors, "warnings": warnings,
         "info": [f"Gerekli dosyalar: {len(REQUIRED_RELATIVE) - missing}/{len(REQUIRED_RELATIVE)}", f"Git durumu: {actual_git}"],
         "git_state": actual_git,
+        "git_observed_at": git_observed_at,
+        "git_receipt_warning": git_receipt_warning,
     }
 
 

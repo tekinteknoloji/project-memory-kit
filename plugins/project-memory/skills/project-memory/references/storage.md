@@ -30,3 +30,9 @@ Individual replacement and file fsync are used; multi-file atomic visibility, fu
 Private snapshots stay local and are ignored by generated project Git rules. They can contain the same sensitive information as the source Markdown; do not publish the journal, backup or real memory as a test fixture. A journal is short-lived transaction protection, not an independent backup.
 
 The portable initializer distributes the new helper. Existing project tools are not silently upgraded; compare project customizations and migrate them separately. The health checker now expects 20 required files. `--transaction-id` is an internal health-check acknowledgement used only by the owning close command during post-write validation; ordinary users should not pass it to suppress a pending-journal error.
+
+## Git receipt semantics
+
+A close records `Git durumu` as an explicitly dated **pre-close** observation (`Git ölçüm anı: Kapanış öncesi`, `Git ölçüm zamanı`). The save itself can dirty a clean repository. A later check reports the actual current Git state separately; it does not compare a dated historical observation as if it were current. No tracked session/receipt or user files are excluded from Git status.
+
+Older receipts retain their previous comparison behavior until replaced by a verified close. Only the identified obsolete Git-receipt warning is resolved by the new receipt format. Any unexpected warning-set change or health-check error after writing still aborts and restores the original save. An invalid/missing measurement timestamp is an error. Git execution/access failure is reported as unknown, not as absence of a repository; an unrecognized/localized non-repository error also remains conservatively unknown.
