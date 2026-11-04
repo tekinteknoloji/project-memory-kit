@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+- Add portable project acceptance tests for UTF-8 paths, zip transfer, post-move closes and recovery after relocation; document separate machine/user acceptance boundaries.
+
 - Define a portable record lifecycle and scoped recall contract; separate proposals, approval and verified implementation without rewriting legacy memory.
 - Align protocol lock guidance with explicit owner-verified recovery.
 
