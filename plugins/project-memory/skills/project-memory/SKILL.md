@@ -17,6 +17,7 @@ When `memory/` exists:
 2. Read `memory/README.md` when the memory protocol or file roles are not already clear.
 3. Select only the one to three topic files directly relevant to the task.
 4. Inspect the real project files needed to verify current state.
+5. For record creation, conflict resolution or uncertain recall, read the project-local `memory/README.md` lifecycle contract. Scope, status and source matter more than a matching title; legacy entries without evidence remain unverified.
 
 Do not load the archive or every memory file by default.
 

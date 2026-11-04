@@ -37,7 +37,7 @@ Do not retain greetings, brainstorming that produced no decision, failed-attempt
 
 ## Record format
 
-Use concise atomic entries. Include only useful fields: stable identifier when cross-references matter; status; date; statement or decision; rationale when losing it could cause a bad reversal; affected areas; and source.
+Use the project-local `memory/README.md` lifecycle contract distributed with the template. For new or substantively changed durable entries, retain stable identifier, date, status, project/scope, statement and source; include rationale and affected areas when needed. Do not bulk-rewrite legacy entries merely to fill fields. Approval and implementation evidence are separate. Preserve superseded decisions and link both directions; unresolved contradictions remain explicit.
 
 ## Status file
 
@@ -53,7 +53,7 @@ Append one compact line to `SESSIONS.md` only for an explicit session close. Kee
 
 Prefer a project-local deterministic checker when present. It should verify required memory files, relative index targets, size thresholds, and likely embedded secrets without modifying files. Treat missing files or broken index targets as errors; excessive size and suspicious values as warnings that require review.
 
-Use project-local locking and atomic replacement for multi-file close operations. If a fresh lock exists, stop rather than writing concurrently. A stale lock may be removed only after its age and target are verified.
+Use project-local locking and atomic replacement for multi-file close operations. If a fresh lock exists, stop rather than writing concurrently. Never remove a lock because of age. Explicit recovery must verify its owner has exited; see [storage recovery](storage.md).
 
 Scheduled low-reasoning maintenance must remain read-only. It may recommend compaction but may not rewrite or archive semantic records without explicit user approval.
 
