@@ -1,5 +1,6 @@
 """Regression tests for preservation and truthful session receipts."""
 import importlib.util
+import json
 import os
 import subprocess
 import sys
@@ -19,7 +20,7 @@ def run(*args, cwd=None):
 class RegressionTests(unittest.TestCase):
     def test_neutral_templates_match_distributed_defaults(self):
         assets = SKILL/'assets/project-memory'
-        neutral = assets/'tools/project_memory_template'
+        neutral = self.project/'tools/project_memory_template'
         defaults = [assets/'AGENTS.md', assets/'README.md', assets/'.gitignore', *(assets/'memory').rglob('*.md')]
         for source in defaults:
             self.assertEqual(source.read_bytes(), (neutral/source.relative_to(assets)).read_bytes())
@@ -129,6 +130,77 @@ class RegressionTests(unittest.TestCase):
         for args in (('--changed', '../outside.md'), ('--summary', 'line\n- Sistem: DEVREDE')):
             self.assertNotEqual(self.close(*args).returncode, 0)
             self.assertEqual(before, self.snapshot())
+
+    def clean_git_fixture(self):
+        status=self.project/'memory/STATUS.md'
+        text=status.read_text(encoding='utf-8').replace('- Git durumu: GIT YOK','- Git durumu: TEMİZ')
+        status.write_text(text,encoding='utf-8')
+        for args in (('init',),('add','.'),('-c','user.name=Test','-c','user.email=test@example.invalid','commit','-m','fixture')):
+            result=subprocess.run(['git','-C',str(self.project),*args],capture_output=True,text=True)
+            self.assertEqual(result.returncode,0,result.stderr)
+
+    def test_clean_git_close_records_historical_state_without_false_warning(self):
+        self.clean_git_fixture()
+        result=self.close()
+        self.assertEqual(result.returncode,0,result.stderr+result.stdout)
+        self.assertIn('- Git ölçüm anı: Kapanış öncesi',result.stdout)
+        self.assertIn('- Git durumu: TEMİZ',result.stdout)
+        report=json.loads(run(self.project/'tools/memory_check.py','--json').stdout)
+        self.assertEqual(report['result'],'BAŞARILI')
+        self.assertEqual(report['git_state'],'KAYDEDİLMEMİŞ DEĞİŞİKLİKLER VAR')
+        self.assertFalse((self.project/'memory/.transaction').exists())
+
+    def test_dirty_git_close_preserves_and_reports_real_changes(self):
+        self.clean_git_fixture()
+        user_file=self.project/'user-note.txt'
+        user_file.write_bytes(b'uncommitted work')
+        result=self.close()
+        self.assertEqual(result.returncode,0,result.stderr+result.stdout)
+        self.assertIn('- Git durumu: KAYDEDİLMEMİŞ DEĞİŞİKLİKLER VAR',result.stdout)
+        self.assertEqual(user_file.read_bytes(),b'uncommitted work')
+        self.assertEqual(json.loads(run(self.project/'tools/memory_check.py','--json').stdout)['result'],'BAŞARILI')
+
+    def test_repeated_close_does_not_compare_old_git_snapshot_as_current(self):
+        self.clean_git_fixture()
+        first=self.close()
+        self.assertEqual(first.returncode,0,first.stderr+first.stdout)
+        second=self.close()
+        self.assertEqual(second.returncode,0,second.stderr+second.stdout)
+        self.assertIn('- Git durumu: KAYDEDİLMEMİŞ DEĞİŞİKLİKLER VAR',second.stdout)
+
+    def test_clean_git_no_durable_change_preserves_last_write(self):
+        self.clean_git_fixture()
+        previous=next(line for line in (self.project/'memory/STATUS.md').read_text(encoding='utf-8').splitlines() if line.startswith('- Son kalıcı kayıt:'))
+        result=self.close('--no-durable-change')
+        self.assertEqual(result.returncode,0,result.stderr+result.stdout)
+        self.assertIn(previous,result.stdout)
+
+    def test_historical_git_scope_requires_valid_measurement_time(self):
+        path=self.project/'memory/STATUS.md'
+        with path.open('a',encoding='utf-8') as file:
+            file.write('\n- Git ölçüm anı: Kapanış öncesi\n- Git ölçüm zamanı: invalid\n')
+        result=run(self.project/'tools/memory_check.py','--json')
+        self.assertEqual(result.returncode,1)
+        self.assertTrue(any('Git ölçüm zamanı' in error for error in json.loads(result.stdout)['errors']))
+
+    def test_git_access_error_is_not_misreported_as_no_repository(self):
+        spec=importlib.util.spec_from_file_location('checker_test',self.project/'tools/memory_check.py')
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        denied=subprocess.CompletedProcess(['git'],128,stdout='',stderr='fatal: access denied')
+        with patch.object(module.subprocess,'run',return_value=denied):
+            self.assertEqual(module.git_state(self.project),'KONTROL EDİLEMEDİ')
+        with patch.object(module.subprocess,'run',side_effect=FileNotFoundError()):
+            self.assertEqual(module.git_state(self.project),'KONTROL EDİLEMEDİ')
+
+    def test_unexpected_post_write_warning_still_rolls_back(self):
+        spec=importlib.util.spec_from_file_location('close_warning_test',self.project/'tools/memory_close.py')
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        before=self.snapshot()
+        good={'result':'BAŞARILI','git_state':'GIT YOK','errors':[],'warnings':[]}
+        changed={**good,'result':'UYARI','warnings':['new unexpected warning']}
+        with patch.object(sys,'argv',['close','--summary','save','--next','later']),patch.object(module,'checker_report',side_effect=[good,changed]):
+            self.assertEqual(module.main(),1)
+        self.assertEqual(self.snapshot(),before)
 
     def test_backup_requires_clean_commit_and_verifies_bundle(self):
         def git(*args):

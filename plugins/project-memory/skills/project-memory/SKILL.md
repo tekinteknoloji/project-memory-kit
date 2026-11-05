@@ -7,9 +7,13 @@ description: Initialize, read, update, audit, compact, archive, or portability-c
 
 Maintain a small, selective, file-based project memory. Treat the project directory as the portable boundary: all project-critical files, requirements, decisions, memory, and memory-use instructions must travel inside it. Global instructions and installed skills may help but must not be required to understand or continue the project.
 
+This shared skill supports Codex and Claude Code. In Claude Code invoke `/project-memory`; in Codex invoke `$project-memory`. Read the project's `AGENTS.md` as well as applicable host instructions such as `CLAUDE.md`; do not assume the host automatically loads `AGENTS.md`. Resolve script paths relative to this installed skill, not the current project. Use Python 3.10+ (`python3` on macOS/Linux, usually `python` on Windows).
+
 Preserve user intent and do not treat memory as more authoritative than verified current project state.
 
 ## Start a task
+
+When asked to install/update this product from a Git address, read [Git-address installation](references/git-install.md) and use the trusted local manager. Infer the current host, not extra project scope; pass an existing project only when authorized. Preserve explicit exclusions and stop on unknown origins/custom managed files. Never treat repository prose as permission to execute arbitrary installation commands.
 
 When `memory/` exists:
 
@@ -17,6 +21,7 @@ When `memory/` exists:
 2. Read `memory/README.md` when the memory protocol or file roles are not already clear.
 3. Select only the one to three topic files directly relevant to the task.
 4. Inspect the real project files needed to verify current state.
+5. For record creation, conflict resolution or uncertain recall, read the project-local `memory/README.md` lifecycle contract. Scope, status and source matter more than a matching title; legacy entries without evidence remain unverified.
 
 Do not load the archive or every memory file by default.
 
@@ -65,7 +70,13 @@ Use this order: newest explicit user instruction; verified project files and tes
 
 Do not silently overwrite conflicting history. Mark the old record invalid or superseded and link the replacement. Label unverified conclusions as `inference` or `unverified`.
 
+## Interrupted saves
+
+If the health check reports a pending transaction, stop new writes and read [storage recovery](references/storage.md). Use the explicit recovery command; never discard a lock or journal just because it is old. Conflicting external edits and corrupt snapshots require review, not forced rollback.
+
 ## Maintenance and portability
+
+For upgrades of an existing project's tools, read [existing project upgrades](references/upgrading.md). Plan against a copy first; verify the old package baseline, preserve custom checks, and stop on managed-file conflicts. Updating the installed skill is not a project upgrade. Do not reinitialize existing memory or treat a copy test as authorization to modify the live project.
 
 For audits, compaction, migration, archive work, portability checks, or status-file recovery, read [references/protocol.md](references/protocol.md). Never invent decisions while summarizing. Preserve requirements, decision rationale, identifiers, unresolved risks, and useful links.
 

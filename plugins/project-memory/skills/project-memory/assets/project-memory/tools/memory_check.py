@@ -5,12 +5,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path, PureWindowsPath
 from urllib.parse import unquote
+from memory_storage import linked
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -21,7 +23,7 @@ REQUIRED_RELATIVE = (
     "memory/REQUIREMENTS.md", "memory/DECISIONS.md", "memory/ARCHITECTURE.md",
     "memory/CONVENTIONS.md", "memory/ISSUES.md", "memory/LEARNINGS.md",
     "memory/ARCHIVE/INDEX.md", "tools/memory_check.py", "tools/memory_close.py",
-    "tools/memory_backup.py", "tools/init_memory.py",
+    "tools/memory_backup.py", "tools/init_memory.py", "tools/memory_storage.py", "tools/memory_init.py",
 )
 LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 ID_RE = re.compile(r"^##\s+((?:REQ|DEC|ISSUE|LRN)-\d+)\b", re.MULTILINE)
@@ -31,7 +33,68 @@ SECRET_RE = re.compile(
     r"AKIA[0-9A-Z]{16}|eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}|"
     r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----)"
 )
+# Explicit credential assignments only; identifiers in prose are not secrets.
+CREDENTIAL_RE = re.compile(
+    r"(?im)^\s*[\"']?(?:[A-Za-z0-9]+_)*(?:password|passwd|secret|token|api_?key)[\"']?\s*[:=]\s*(.+?)\s*,?\s*$"
+)
+PLACEHOLDER_VALUES = frozenset({'example', 'sample', 'changeme', 'change_me',
+                              'your_key', 'your_token', 'your_password', 'placeholder',
+                              'redacted', 'none', 'null', 'test', 'dummy'})
+
+
+def has_secret(text):
+    if SECRET_RE.search(text):
+        return True
+    for match in CREDENTIAL_RE.finditer(text):
+        value = match.group(1).strip().strip("\"'")
+        lower = value.casefold()
+        if (len(value) < 8 or lower in PLACEHOLDER_VALUES
+                or value.startswith(('<', '${', '{{', '%'))
+                or lower.startswith(('os.environ', 'os.getenv', 'process.env', 'getenv('))
+                or set(value) <= {'*', 'x', 'X', '.'}):
+            continue
+        # Unquoted whitespace is usually explanatory prose, not a bound value.
+        if any(char.isspace() for char in value):
+            continue
+        return True
+    return False
+
+
 TEXT_SUFFIXES = {".md", ".txt", ".json", ".toml", ".yaml", ".yml", ".env"}
+# Explicit source-scan policy: dependencies/caches only, not app data/config.
+SCAN_EXCLUDED_DIRS = frozenset({'.git','__pycache__','node_modules','venv','.venv',
+                               '.tox','.pytest_cache','.mypy_cache','.ruff_cache','.transaction'})
+
+
+def scan_files(root, errors, warnings, counts):
+    if not root.exists():
+        return
+    if linked(root):
+        errors.append('Bağlantılı tarama kökü reddedildi: '+root.name)
+        return
+    def failed(error):
+        errors.append('Taranamayan dizin: '+str(error.filename))
+    for current,directories,files in os.walk(root,topdown=True,followlinks=False,onerror=failed):
+        current=Path(current)
+        kept=[]
+        for name in sorted(directories):
+            path=current/name
+            if name in SCAN_EXCLUDED_DIRS:
+                counts['pruned_directories']+=1
+            elif linked(path):
+                counts['pruned_directories']+=1
+                warnings.append('Bağlantılı dizin taranmadı: '+path.relative_to(root).as_posix())
+            else:
+                kept.append(name)
+        directories[:]=kept
+        for name in sorted(files):
+            path=current/name
+            if linked(path):
+                warnings.append('Bağlantılı dosya taranmadı: '+path.relative_to(root).as_posix())
+            elif path.is_file():
+                yield path
+
+
 STATUS_FIELDS = (
     "Sistem", "Son kontrol", "Son kalıcı kayıt", "Dosya kaydı", "Git durumu",
     "Yerel yedekleme", "Harici yedekleme", "Hafıza kontrolü",
@@ -70,15 +133,50 @@ def git_state(root: Path) -> str:
     except (OSError, subprocess.SubprocessError):
         return "KONTROL EDİLEMEDİ"
     if result.returncode != 0:
-        return "GIT YOK"
+        # A broken .git entry is not evidence that the project has no Git.
+        has_git_entry = any((parent / ".git").exists() or (parent / ".git").is_symlink()
+                            for parent in (root, *root.parents))
+        return "GIT YOK" if not has_git_entry and "not a git repository" in (result.stderr or "").casefold() else "KONTROL EDİLEMEDİ"
     return "TEMİZ" if not result.stdout.strip() else "KAYDEDİLMEMİŞ DEĞİŞİKLİKLER VAR"
 
 
-def audit(root: Path) -> dict[str, object]:
+def audit(root: Path, transaction_id: str | None = None) -> dict[str, object]:
     root = root.resolve()
     memory = root / "memory"
     errors: list[str] = []
     warnings: list[str] = []
+    cache = {}
+    scan = {'pruned_directories': 0, 'text_files_read': 0,
+            'excluded_directory_names': sorted(SCAN_EXCLUDED_DIRS)}
+    def read(path):
+        if path not in cache:
+            current=root
+            for part in path.relative_to(root).parts:
+                current=current/part
+                if linked(current):
+                    errors.append('Bağlantılı dosya yolu reddedildi: '+path.relative_to(root).as_posix())
+                    cache[path]=''
+                    return ''
+            cache[path]=read_text(path,errors)
+            scan['text_files_read']+=1
+        return cache[path]
+
+
+    pending = memory / '.transaction'
+    if pending.exists() or pending.is_symlink():
+        try:
+            if linked(memory) or linked(pending) or linked(pending / 'manifest.json'):
+                raise ValueError('linked journal')
+            manifest = json.loads((pending / 'manifest.json').read_text(encoding='utf-8'))
+            if not isinstance(manifest, dict):
+                raise ValueError('invalid journal')
+            owned = transaction_id and manifest.get('id') == transaction_id and manifest.get('state') == 'prepared'
+            if not owned:
+                errors.append('Tamamlanmamış hafıza işlemi: önce memory_close.py --recover')
+        except (OSError, ValueError, TypeError):
+            errors.append('İşlem günlüğü doğrulanamadı; otomatik yazma engellenmeli')
+    elif transaction_id:
+        errors.append('Etkin işlem günlüğü bulunamadı')
 
     for relative in REQUIRED_RELATIVE:
         if not (root / relative).is_file():
@@ -86,12 +184,12 @@ def audit(root: Path) -> dict[str, object]:
 
     markdown_files = [root / "README.md", root / "AGENTS.md"]
     if memory.is_dir():
-        markdown_files.extend(sorted(memory.rglob("*.md")))
+        markdown_files.extend(path for path in scan_files(memory,errors,warnings,scan) if path.suffix==".md")
     ids: dict[str, list[str]] = {}
     for path in markdown_files:
         if not path.is_file():
             continue
-        text = read_text(path, errors)
+        text = read(path)
         relative = path.relative_to(root).as_posix()
         lines = text.count("\n") + 1
         limit = 100 if path.name == "SESSIONS.md" else 200
@@ -120,19 +218,17 @@ def audit(root: Path) -> dict[str, object]:
         if len(locations) > 1:
             errors.append(f"Yinelenen kayıt kimliği {record_id}: {', '.join(locations)}")
 
-    for path in root.rglob("*"):
-        if not path.is_file() or ".git" in path.parts or "__pycache__" in path.parts:
-            continue
+    for path in scan_files(root,errors,warnings,scan):
         if path.suffix.lower() not in TEXT_SUFFIXES and path.name != ".env":
             continue
-        text = read_text(path, errors)
-        if SECRET_RE.search(text):
+        text = read(path)
+        if has_secret(text):
             message = f"Olası gizli değer: {path.relative_to(root).as_posix()}"
             if message not in warnings:
                 warnings.append(message)
 
     status_path = memory / "STATUS.md"
-    status = parse_status(read_text(status_path, errors)) if status_path.is_file() else {}
+    status = parse_status(read(status_path)) if status_path.is_file() else {}
     for field in STATUS_FIELDS:
         if field not in status:
             errors.append(f"STATUS.md alanı eksik: {field}")
@@ -152,14 +248,28 @@ def audit(root: Path) -> dict[str, object]:
             errors.append(f"STATUS.md geçersiz zaman damgası: {field}")
 
     actual_git = git_state(root)
+    git_observed_at = datetime.now().astimezone().isoformat(sep=" ", timespec="seconds")
     claimed_git = status.get("Git durumu")
-    if claimed_git and claimed_git != actual_git:
-        warnings.append(f"STATUS.md Git durumu eski: kayıt={claimed_git}, gerçek={actual_git}")
+    git_scope = status.get("Git ölçüm anı")
+    historical_git = git_scope == "Kapanış öncesi"
+    git_receipt_warning = None
+    if historical_git:
+        try:
+            observed = datetime.fromisoformat(status.get("Git ölçüm zamanı", ""))
+            if observed.tzinfo is None or observed.astimezone(timezone.utc) > datetime.now(timezone.utc) + timedelta(minutes=5):
+                raise ValueError("invalid measurement time")
+        except ValueError:
+            errors.append("STATUS.md Git ölçüm zamanı geçersiz veya zaman dilimi eksik")
+    elif git_scope:
+        errors.append("STATUS.md Git ölçüm anı tanınmıyor")
+    elif claimed_git and claimed_git != actual_git:
+        git_receipt_warning = f"STATUS.md Git durumu eski: kayıt={claimed_git}, gerçek={actual_git}"
+        warnings.append(git_receipt_warning)
 
     issues_path, current_path = memory / "ISSUES.md", memory / "CURRENT.md"
     if issues_path.is_file() and current_path.is_file():
-        issues_text = read_text(issues_path, errors)
-        current_text = read_text(current_path, errors)
+        issues_text = read(issues_path)
+        current_text = read(current_path)
         has_open = bool(re.search(r"^- Durum:\s*açık\s*$", issues_text, re.MULTILINE | re.IGNORECASE))
         none = bool(re.search(r"^## Engeller\s*\n+\s*Yok\.?(?:\s*)$", current_text, re.MULTILINE | re.IGNORECASE))
         if has_open and none:
@@ -169,8 +279,11 @@ def audit(root: Path) -> dict[str, object]:
     missing = sum(item.startswith("Eksik gerekli dosya:") for item in errors)
     return {
         "result": result, "errors": errors, "warnings": warnings,
-        "info": [f"Gerekli dosyalar: {len(REQUIRED_RELATIVE) - missing}/{len(REQUIRED_RELATIVE)}", f"Git durumu: {actual_git}"],
+        "info": [f"Gerekli dosyalar: {len(REQUIRED_RELATIVE) - missing}/{len(REQUIRED_RELATIVE)}", f"Git durumu: {actual_git}", f"Tarama: {scan['text_files_read']} metin dosyası okundu, {scan['pruned_directories']} dizin atlandı"],
         "git_state": actual_git,
+        "git_observed_at": git_observed_at,
+        "git_receipt_warning": git_receipt_warning,
+        "scan": scan,
     }
 
 
@@ -178,8 +291,9 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument("--json", action="store_true", dest="as_json")
+    parser.add_argument("--transaction-id", help=argparse.SUPPRESS)
     args = parser.parse_args()
-    report = audit(args.root)
+    report = audit(args.root, args.transaction_id)
     if args.as_json:
         print(json.dumps(report, ensure_ascii=False, indent=2))
     else:

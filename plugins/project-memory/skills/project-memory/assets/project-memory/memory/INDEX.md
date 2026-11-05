@@ -1,5 +1,7 @@
 # Hafıza İndeksi
 
+- [README.md](README.md): kayıt durumları, kaynak ve ilgili bilgiye erişim protokolü
+
 - [CURRENT.md](CURRENT.md): aktif hedef ve sonraki adım
 - [STATUS.md](STATUS.md): son doğrulanmış durum
 - [REQUIREMENTS.md](REQUIREMENTS.md): gereksinimler
