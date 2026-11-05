@@ -34,3 +34,11 @@ Aynı başlıklı sonuçlarda kimlik, kapsam, durum ve kaynağı karşılaştır
 Yeni bilgiyi mevcut kayıtla karşılaştır; yalnız yeni sonuç veya değişen kararı kaydet. Eski kararın gerekçesini silme. Değişikliğin etkilediği kayıtları/kaynakları kontrol et, ardından kısa yönlendirmeyi güncelle. Kullanıcı onayı gereken bir öneri otomatik uygulanmaz.
 
 Sıkıştırma/arşivleme için önce özgün bayt yedeği ve kaynak→hedef eşleme hazırlanır; yalnız özete güvenerek silme yapılmaz. Anlamsal doğruluk sağlık kontrolünün BAŞARILI sonucu ile kanıtlanmaz. Gerçek sadeleştirme ayrıca değerlendirilir.
+
+- Durum sorguları salt okunurdur. En yeni kullanıcı talimatını ve aynı sürüm, ortam ve kapsamda doğrulanmış proje kaynaklarını eski hafıza kayıtlarından önce değerlendir.
+
+Sorun durumu: `açık`, `kapandı`, `yeniden açıldı`. Kanıt durumu ayrı yazılır. Kapanışa tarih, kapsam ve dayanak ekle. Eski `çözüldü` kayıtlarını kapsamıyla birlikte oku. Aynı kapsamda yeni kanıt veya açık karar olmadan yeniden açma.
+
+Açık iş maddesinde önceki bulgu, açık soru veya engel, sıradaki adım ve doğrudan ana kaynak bağlantısı birlikte yer alır.
+
+Oturum arşivi için `python tools/memory_archive_sessions.py` ile önizleme al. Çıkan özeti `--apply ÖZET` ile onayla. Normal kapanış yalnız ekler. Var olan projede ilk kullanım için `memory/ARCHIVE/SESSIONS.md` dosyasını arşiv başlığıyla oluştur. Bu dosya işlem günlüğü için başlangıç görüntüsüdür.

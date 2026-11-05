@@ -81,3 +81,7 @@ For upgrades of an existing project's tools, read [existing project upgrades](re
 For audits, compaction, migration, archive work, portability checks, or status-file recovery, read [references/protocol.md](references/protocol.md). Never invent decisions while summarizing. Preserve requirements, decision rationale, identifiers, unresolved risks, and useful links.
 
 Scheduled low-reasoning maintenance is read-only: run health checks, identify compaction candidates, and report recommendations without changing memory. Semantic compaction or archival rewriting requires explicit user approval, a clean or recoverable Git state, and post-change verification.
+
+For read-only status, verify the owning source for the same scope, environment and version. Check whether closure evidence or a newer authorized decision supersedes a historical task before proposing it again.
+
+Durum sorgusunda salt okunur denetimin continuity sonucuna bak. legacy_unverified eski kaydın eşleşmesinin doğrulanamadığını belirtir. Uyuşmazlıkta son doğrulanmış kaynağa dön. Bekleyen işlem günlüğü varsa yeni yazı yapmadan doğrulanmış kurtarma yolunu izle.

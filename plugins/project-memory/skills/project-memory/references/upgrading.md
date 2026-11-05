@@ -96,3 +96,5 @@ require manual adaptation. Backups and displaced tool copies are retained.
 After copy acceptance, applying to a live project is a separate authorized step:
 make a fresh copy/backup, plan against the actual project, review it, apply and
 re-run its project-specific checks. Never reuse a plan whose target was the copy.
+
+The plan reports separate project skill, tool and template baseline matches and the presence of legacy age-based lock guidance. These are observations only. Merge customized instructions and adopt explicit recovery separately from tool replacement.

@@ -140,6 +140,40 @@ def git_state(root: Path) -> str:
     return "TEMİZ" if not result.stdout.strip() else "KAYDEDİLMEMİŞ DEĞİŞİKLİKLER VAR"
 
 
+def open_issue_exists(issues, current):
+    scope = re.search(r"(?im)^- Kapsam:[ 	]*(.+)$", current)
+    for record in re.split(r"(?m)^#{1,6} ", issues):
+        status = re.search(r"(?im)^- Durum:[ 	]*(.+)$", record)
+        if not status or not re.match(r"(?:açık|yeniden açıldı)(?:$|[ 	(;—])",
+                                      status[1].strip().casefold()):
+            continue
+        issue_scope = re.search(r"(?im)^- Kapsam:[ 	]*(.+)$", record)
+        if not scope or not issue_scope or scope[1].strip().casefold() == issue_scope[1].strip().casefold():
+            return True
+    return False
+
+
+def continuity(status, sessions, current):
+    close_id = status.get("Kapanış kimliği")
+    ids = re.findall(r"(?m)^- \d{4}-\d{2}-\d{2}[^\n]* \[close:([0-9a-f]{32})\]$", sessions)
+    if not close_id and not ids:
+        closure = "legacy_unverified"
+    elif ids and ids[-1] == close_id and ids.count(close_id) == 1:
+        closure = "matched"
+    else:
+        closure = "mismatch"
+    missing = []
+    entries = re.split(r"(?m)^### Etkin iş: ", current)[1:]
+    for entry in entries:
+        title, _, body = entry.partition("\n")
+        body = re.split(r"(?m)^#{1,3} ", body, maxsplit=1)[0]
+        for field in ("Bulgu", "Açık konu", "Sonraki adım", "Kaynak"):
+            match = re.search(rf"(?m)^- {field}:[ \t]*(\S.*)$", body)
+            if not match or (field == "Kaynak" and not re.search(r"\[[^\]]+\]\([^)]+\)", match[1])):
+                missing.append(f"{title}: {field}")
+    return {"closure": closure, "handoff": "incomplete" if missing else "checked" if entries else "legacy_unverified", "missing": missing}
+
+
 def audit(root: Path, transaction_id: str | None = None) -> dict[str, object]:
     root = root.resolve()
     memory = root / "memory"
@@ -229,6 +263,13 @@ def audit(root: Path, transaction_id: str | None = None) -> dict[str, object]:
 
     status_path = memory / "STATUS.md"
     status = parse_status(read(status_path)) if status_path.is_file() else {}
+    session_path = memory / "SESSIONS.md"
+    current_path = memory / "CURRENT.md"
+    handoff = continuity(status, read(session_path) if session_path.is_file() else "",
+                         read(current_path) if current_path.is_file() else "")
+    if handoff["closure"] == "mismatch":
+        warnings.append("Kapanış kimliği son oturum kaydıyla eşleşmiyor")
+    warnings.extend(f"Eksik devir bilgisi: {field}" for field in handoff["missing"])
     for field in STATUS_FIELDS:
         if field not in status:
             errors.append(f"STATUS.md alanı eksik: {field}")
@@ -270,7 +311,7 @@ def audit(root: Path, transaction_id: str | None = None) -> dict[str, object]:
     if issues_path.is_file() and current_path.is_file():
         issues_text = read(issues_path)
         current_text = read(current_path)
-        has_open = bool(re.search(r"^- Durum:\s*açık\s*$", issues_text, re.MULTILINE | re.IGNORECASE))
+        has_open = open_issue_exists(issues_text, current_text)
         none = bool(re.search(r"^## Engeller\s*\n+\s*Yok\.?(?:\s*)$", current_text, re.MULTILINE | re.IGNORECASE))
         if has_open and none:
             warnings.append("CURRENT.md 'Engeller: Yok' diyor fakat ISSUES.md içinde açık sorun var")
@@ -278,6 +319,7 @@ def audit(root: Path, transaction_id: str | None = None) -> dict[str, object]:
     result = "HATA" if errors else ("UYARI" if warnings else "BAŞARILI")
     missing = sum(item.startswith("Eksik gerekli dosya:") for item in errors)
     return {
+        "continuity": handoff,
         "result": result, "errors": errors, "warnings": warnings,
         "info": [f"Gerekli dosyalar: {len(REQUIRED_RELATIVE) - missing}/{len(REQUIRED_RELATIVE)}", f"Git durumu: {actual_git}", f"Tarama: {scan['text_files_read']} metin dosyası okundu, {scan['pruned_directories']} dizin atlandı"],
         "git_state": actual_git,

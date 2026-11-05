@@ -1,3 +1,9 @@
+## 1.2.1
+
+- Verify status and closure against scoped evidence.
+- Report skill, tool and template drift.
+- Preview and explicitly approve journaled session archiving.
+
 # Changelog
 
 All notable changes to this project are documented here.

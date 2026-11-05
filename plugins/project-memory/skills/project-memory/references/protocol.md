@@ -77,3 +77,9 @@ Before migration, verify that root instructions, memory, requirements, decisions
 ## Maintenance report
 
 Report changed memory files, what was compacted or archived, portability gaps, contradictions found, and any item requiring user judgment. Keep the report short when no issue is found.
+
+## Current status and handoff
+
+Check the same scope, version and environment against the owning source. Treat status requests as read-only. Preserve closed issues and their evidence. Track execution, acceptance and follow-up separately. Put the prior finding, blocker or open question, next step and source in the same CURRENT entry.
+
+Durum sorgusunda salt okunur denetimin continuity sonucuna bak. legacy_unverified eski kaydın eşleşmesinin doğrulanamadığını belirtir. Uyuşmazlıkta son doğrulanmış kaynağa dön. Bekleyen işlem günlüğü varsa yeni yazı yapmadan doğrulanmış kurtarma yolunu izle.

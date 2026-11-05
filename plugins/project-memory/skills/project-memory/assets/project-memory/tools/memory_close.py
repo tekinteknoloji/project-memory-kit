@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Close a session with validation, verified writes and exception rollback."""
 from __future__ import annotations
+import uuid
 import argparse
 import json
 import subprocess
@@ -85,7 +86,8 @@ def main() -> int:
                               if line.startswith('- Son kalıcı kayıt:')) if args.no_durable_change else timestamp
             # Existing history stays byte-for-byte intact as the prefix. Archive
             # maintenance requires a separate explicit request.
-            session_text = snapshot[sessions].decode('utf-8') + f'\n- {timestamp} — {args.summary} — Sonraki: {args.next_action}.\n'
+            close_id = uuid.uuid4().hex
+            session_text = snapshot[sessions].decode('utf-8') + f'\n- {timestamp} — {args.summary} — Sonraki: {args.next_action}. [close:{close_id}]\n'
             changed = sorted(set(args.changed + ['memory/SESSIONS.md', 'memory/STATUS.md']))
             status = (
                 '# Hafıza Durumu\n\n- Sistem: DEVREDE\n'
@@ -97,6 +99,7 @@ def main() -> int:
                 f'- Yerel yedekleme: {backup_state()}\n- Harici yedekleme: DOĞRULANMADI\n'
                 f'- Hafıza kontrolü: {expected_result}\n'
                 f'- Son güncellenen dosyalar: {", ".join(changed)}\n'
+                f'- Kapanış kimliği: {close_id}\n'
                 f'- Son işlem: {args.summary}\n- Sonraki adım: {args.next_action}\n'
             )
             def validate():

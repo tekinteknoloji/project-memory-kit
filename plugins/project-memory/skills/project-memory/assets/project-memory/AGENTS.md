@@ -6,3 +6,5 @@
 - “Bugünlük bu kadar” denildiğinde `python tools/memory_close.py` ile doğrulanmış kapanış yap.
 - Haftalık otomasyon salt-okunur denetimdir; sıkıştırma kullanıcı onayı gerektirir.
 - Projeye gerekli bilgileri proje klasörü dışında tekil olarak tutma.
+
+- Durum sorguları salt okunurdur. En yeni kullanıcı talimatını ve aynı sürüm, ortam ve kapsamda doğrulanmış proje kaynaklarını eski hafıza kayıtlarından önce değerlendir.
