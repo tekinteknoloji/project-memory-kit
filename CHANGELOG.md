@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+- Add a trusted Git-address release manager: stable-tag selection, declarative release manifests, exact source hashes/provenance, retained private archives, project-copy trials and coordinated skill/project updates with conservative rollback. Downloaded installers/checkers are not executed. Legacy origins/customizations and unsupported procedures stop safely; first compatible publication remains pending.
+
+- Add read-only existing-project upgrade plans with trusted old-package baselines, conflict blocking, private verified backups, candidate health checks, tool-directory activation, interruption recovery and tools-only restore. Preserve live memory/instructions and additional project checks; customized managed tools require manual adaptation.
+
+- Add a shared Python installer for Codex and Claude Code on Windows/macOS/Linux, with explicit provider selection, verified staging, retained backups and activation-failure rollback.
+- Add Unix install/uninstall entrypoints, Claude Code manual/project-local setup guidance, isolated installer tests and a macOS CI matrix entry. Host/model behavior and native macOS acceptance remain separate from installation tests.
+
 - Add portable project acceptance tests for UTF-8 paths, zip transfer, post-move closes and recovery after relocation; document separate machine/user acceptance boundaries.
 
 - Define a portable record lifecycle and scoped recall contract; separate proposals, approval and verified implementation without rewriting legacy memory.
