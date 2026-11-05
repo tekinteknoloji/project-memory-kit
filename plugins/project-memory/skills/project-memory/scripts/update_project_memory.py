@@ -95,7 +95,29 @@ def plan(project, baseline=None):
             status = "conflict"
         entries.append({"path": name, "status": status, "before": installed,
                         "after": current.get(name)})
-    return {"schema": 1, "project": str(project),
+    def layer(path, expected):
+        installed = {}
+        for name in expected:
+            candidate = path / name
+            safe(candidate)
+            if candidate.is_file():
+                installed[name] = hashlib.sha256(candidate.read_bytes()).hexdigest()
+        return {"matches": sorted(name for name in expected if installed.get(name) == expected[name]),
+                "different": sorted(name for name in expected if name in installed and installed[name] != expected[name]),
+                "missing": sorted(name for name in expected if name not in installed)}
+
+    skill_dir = project / ".agents/skills/project-memory"
+    protocol = skill_dir / "references/protocol.md"
+    safe(protocol)
+    layers = {
+        "skill": layer(skill_dir, tree(ASSETS.parents[1])),
+        "tools": layer(project / "tools", {name: value for name, value in current.items() if "/" not in name}),
+        "project_templates": layer(project / "templates/project-memory", {
+            name.split("/", 1)[1]: value for name, value in current.items() if name.startswith("project_memory_template/")
+        }),
+        "legacy_lock_guidance": protocol.is_file() and "after its age and target" in protocol.read_text(encoding="utf-8"),
+    }
+    return {"schema": 1, "project": str(project), "layers": layers,
             "baseline": str(Path(baseline).absolute()) if baseline else None,
             "source": current, "tools_before": before, "protected": protected(project),
             "entries": entries}

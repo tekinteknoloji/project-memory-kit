@@ -6,7 +6,7 @@ import sys
 from memory_check import git_state, REQUIRED_RELATIVE
 from memory_storage import atomic_write, linked
 
-TOOL_NAMES=('init_memory.py','memory_check.py','memory_close.py','memory_backup.py','memory_storage.py','memory_init.py')
+TOOL_NAMES=('init_memory.py','memory_check.py','memory_close.py','memory_backup.py','memory_storage.py', 'memory_archive_sessions.py','memory_init.py')
 
 
 def initialize(template_root,tool_root,target):
