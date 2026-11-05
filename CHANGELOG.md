@@ -2,9 +2,9 @@
 
 All notable changes to this project are documented here.
 
-## Unreleased
+## 1.2.0 — 2026-11-05
 
-- Add a trusted Git-address release manager: stable-tag selection, declarative release manifests, exact source hashes/provenance, retained private archives, project-copy trials and coordinated skill/project updates with conservative rollback. Downloaded installers/checkers are not executed. Legacy origins/customizations and unsupported procedures stop safely; first compatible publication remains pending.
+- Add a trusted Git-address release manager with stable-tag selection, declarative release manifests, exact source hashes and provenance, retained private archives, project-copy trials, and coordinated skill/project updates with conservative rollback. Downloaded installers and checkers are not executed. Legacy origins, customizations, and unsupported procedures stop safely.
 
 - Add read-only existing-project upgrade plans with trusted old-package baselines, conflict blocking, private verified backups, candidate health checks, tool-directory activation, interruption recovery and tools-only restore. Preserve live memory/instructions and additional project checks; customized managed tools require manual adaptation.
 
