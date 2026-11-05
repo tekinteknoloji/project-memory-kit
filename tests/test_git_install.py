@@ -26,10 +26,10 @@ class GitInstallTests(unittest.TestCase):
     def setUpClass(cls):
         cls.fixture_temp = tempfile.TemporaryDirectory(prefix="git-releases-")
         cls.addClassCleanup(cls.fixture_temp.cleanup)
-        cls.fixture = Path(cls.fixture_temp.name) / "repository"
+        cls.fixture = Path(cls.fixture_temp.name).resolve() / "repository"
         cls.remote_skill = cls.fixture / manager.SKILL_PATH
         shutil.copytree(SKILL, cls.remote_skill, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
-        cls.old = Path(cls.fixture_temp.name) / "old-skill"
+        cls.old = Path(cls.fixture_temp.name).resolve() / "old-skill"
         checker = cls.remote_skill / "assets/project-memory/tools/memory_check.py"
         checker.write_bytes(b"# Previous released checker\n" + checker.read_bytes())
         shutil.copytree(cls.remote_skill, cls.old)
@@ -60,7 +60,7 @@ class GitInstallTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="git-manager-")
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         self.home = self.root / "Türkçe kullanıcı"
         self.repo = self.root / "repo"
         shutil.copytree(self.fixture, self.repo)

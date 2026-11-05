@@ -24,7 +24,7 @@ class ProjectUpdateTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="memory-upgrade-")
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         self.baseline = self.root / "old-assets"
         shutil.copytree(updater.ASSETS, self.baseline)
         checker = self.baseline / "tools/memory_check.py"

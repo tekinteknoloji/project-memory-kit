@@ -19,7 +19,7 @@ class InstallSkillTests(unittest.TestCase):
     def test_both_providers_preserve_rules_backup_and_uninstall(self):
         for provider in ("codex", "claude"):
             with self.subTest(provider=provider), tempfile.TemporaryDirectory() as directory:
-                home = Path(directory) / "Türkçe kullanıcı"
+                home = Path(directory).resolve() / "Türkçe kullanıcı"
                 root = home / f".{provider}"
                 root.mkdir(parents=True)
                 rules = root / ("CLAUDE.md" if provider == "claude" else "AGENTS.md")
@@ -43,7 +43,7 @@ class InstallSkillTests(unittest.TestCase):
 
     def test_activation_failure_restores_previous_installation(self):
         with tempfile.TemporaryDirectory() as directory:
-            home = Path(directory)
+            home = Path(directory).resolve()
             installer.manage("install", "claude", home)
             target = home / ".claude/skills/project-memory"
             (target / "custom").write_bytes(b"original")
@@ -63,7 +63,7 @@ class InstallSkillTests(unittest.TestCase):
 
     def test_existing_lock_and_linked_target_are_preserved(self):
         with tempfile.TemporaryDirectory() as directory:
-            home = Path(directory)
+            home = Path(directory).resolve()
             skills = home / ".claude/skills"
             skills.mkdir(parents=True)
             lock = skills / ".project-memory.install.lock"
@@ -87,7 +87,7 @@ class InstallSkillTests(unittest.TestCase):
 
     def test_invalid_source_does_not_replace_installation(self):
         with tempfile.TemporaryDirectory() as directory:
-            home = Path(directory)
+            home = Path(directory).resolve()
             installer.manage("install", "codex", home)
             target = home / ".codex/skills/project-memory"
             before = installer.fingerprint(target)
@@ -97,7 +97,7 @@ class InstallSkillTests(unittest.TestCase):
 
     def test_installed_claude_skill_initializes_a_portable_project(self):
         with tempfile.TemporaryDirectory() as directory:
-            home = Path(directory) / "profile"
+            home = Path(directory).resolve() / "profile"
             installer.manage("install", "claude", home)
             script = home / ".claude/skills/project-memory/scripts/init_project_memory.py"
             project = Path(directory) / "Yeni proje"
@@ -111,7 +111,7 @@ class InstallSkillTests(unittest.TestCase):
         if os.name == "nt" or not shutil.which("sh"):
             self.skipTest("Unix shell entrypoints run on Linux/macOS")
         with tempfile.TemporaryDirectory() as directory:
-            home = Path(directory) / "Türkçe kullanıcı"
+            home = Path(directory).resolve() / "Türkçe kullanıcı"
             for script in ("install.sh", "uninstall.sh"):
                 result = subprocess.run(
                     ["sh", str(ROOT / script), "--provider", "claude", "--user-home", str(home)],
@@ -124,7 +124,7 @@ class InstallSkillTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             command = [sys.executable, str(ROOT / "install_skill.py"), "install"]
             self.assertNotEqual(subprocess.run(command, capture_output=True).returncode, 0)
-            result = subprocess.run(command + ["--provider", "claude", "--user-home", directory],
+            result = subprocess.run(command + ["--provider", "claude", "--user-home", str(Path(directory).resolve())],
                                     capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue((Path(directory) / ".claude/skills/project-memory/SKILL.md").is_file())

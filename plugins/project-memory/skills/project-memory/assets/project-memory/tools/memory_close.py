@@ -41,6 +41,9 @@ def backup_state() -> str:
         return 'DOĞRULANMADI'
 
 def main() -> int:
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, 'reconfigure'):
+            stream.reconfigure(encoding='utf-8')
     parser = argparse.ArgumentParser()
     parser.add_argument('--summary')
     parser.add_argument('--next', dest='next_action')
